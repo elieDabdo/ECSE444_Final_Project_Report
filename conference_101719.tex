@@ -59,7 +59,6 @@ Tilt-based control is the core feature of this project, offering an innovative w
 
 By detailing both the design and implementation, this report aims to showcase not only the technical accomplishments but also the methodologies used to achieve a seamless gaming experience. The project demonstrates the versatility of embedded systems in creating real-time interactive applications, making it a valuable learning experience and a proof of concept for future developments.
 
-
 \section{Project Features}
 \subsection{UART Communication for Game Display}
 The game leverages UART communication to print the road layout and car position on a terminal. This feature provides real-time visual feedback of the car's movement relative to the road boundaries. The dynamic display updates continuously as the player interacts with the game, making it easy to monitor gameplay progress. This feature highlights the integration of serial communication protocols to achieve seamless data transfer.
@@ -98,14 +97,33 @@ Tilt control is also used for menu navigation. The accelerometer readings are pr
 This intuitive control mechanism enhances user experience and eliminates the need for additional buttons or input devices.
 
 \subsection{Auditory Feedback Using DAC and Speaker}
-Auditory feedback is provided through a speaker connected to the microcontroller's DAC. This feature generates sound effects when the car goes off the road, alerting the player. The DAC converts digital signals into analog waveforms, driving the speaker to produce sound. This enhances the game’s interactivity by engaging multiple senses.
+Auditory feedback is provided through a speaker connected to the microcontroller's DAC. This feature generates sound effects when the car interacts with the game environment, such as collisions, crossing boundaries, or successfully completing a level. The DAC converts digital signals into analog waveforms, driving the speaker to produce sound. This enhances the game’s interactivity by engaging multiple senses.
+
+\subsubsection{Speaker Setup}
+The speaker is connected to the DAC output pin on the microcontroller. The DAC is configured to produce varying signal levels to modulate sound pitches and volumes. Key details include:
+\begin{itemize}
+    \item \textbf{Hardware Connection:} The DAC output is connected to a low-power speaker via a coupling capacitor to filter out DC offsets.
+    \item \textbf{Signal Modulation:} The DAC generates waveforms of different frequencies and durations to create distinct sound effects.
+    \item \textbf{Volume Control:} By adjusting the amplitude of the generated waveform, the volume can be controlled programmatically.
+    \item \textbf{Improved Loudness:} The speaker's volume was optimized by ensuring maximum safe DAC output levels and experimenting with different coupling capacitor values to enhance audio output.
+\end{itemize}
+
+\subsubsection{Sound Effects Implementation}
+The game features multiple sound effects to enhance player immersion:
+\begin{itemize}
+    \item \textbf{Collision Alert:} A sharp tone of fixed duration to notify the player of a collision.
+    \item \textbf{Boundary Warning:} A short beep when the car attempts to cross the road boundaries.
+    \item \textbf{Victory Sound:} A sequence of tones of varying pitches and durations to celebrate reaching the finish line.
+    \item \textbf{Game Over Sound:} A descending sequence of tones to signal the end of the game after a collision.
+\end{itemize}
+The sounds are generated using sine wave approximations at specific frequencies and durations. These parameters were fine-tuned to ensure clarity and distinguishability.
 
 \subsection{Operating System for Thread Management}
 An operating system is implemented to manage threads for various tasks, including input handling, game logic, display updates, and sound generation. The OS ensures efficient multitasking and real-time responsiveness, critical for an interactive game. Key functionalities include:
 \begin{itemize}
-    \item Task scheduling: Allocating CPU time to different tasks based on priority.
-    \item Synchronization: Preventing resource conflicts among threads.
-    \item Resource management: Efficiently handling shared resources like memory and peripherals.
+    \item \textbf{Task Scheduling:} Allocating CPU time to different tasks based on priority.
+    \item \textbf{Synchronization:} Preventing resource conflicts among threads.
+    \item \textbf{Resource Management:} Efficiently handling shared resources like memory and peripherals.
 \end{itemize}
 
 \section{Game Features}
@@ -146,7 +164,6 @@ a victory message is displayed on the terminal, and a celebratory sound is gener
 
 \subsection{Integration of Features}
 These features are seamlessly integrated to deliver a cohesive gameplay experience. The system ensures real-time updates to the terminal display and accurate feedback to the player, making the game intuitive and engaging. Each feature contributes to the overall challenge and enjoyment, highlighting the capabilities of the embedded system.
-
 
 \section{Conclusion}
 This project demonstrates a range of microcontroller capabilities through an interactive car game. The ambitious features, particularly tilt control, showcase advanced interfacing, mathematical processing, and intuitive user interaction. The combination of UART communication, auditory feedback, and multitasking through an operating system further highlights the project’s complexity and innovation. The code is structured and well-documented to ensure readability and maintainability.
