@@ -131,6 +131,19 @@ The interactive car game is designed to provide an engaging and immersive experi
 
 \subsection{Overview of the Game}
 The player controls a car navigating through a dynamically generated road. The road is displayed on a terminal via UART, providing real-time feedback on the car's position relative to road boundaries and obstacles. The car is moved using tilt-based controls, where the player tilts the device to steer left or right. The objective is to safely navigate the road, avoid obstacles, and reach the finish line.
+\subsection{Game Menu}
+The game menu was designed to let the player decide the difficulty of the game each time the game is reset.
+
+\subsubsection{Game Menu Functionality}
+The game menu is displayed to the player whenever the game is first launched or after the player has won or lost a game. It lets the player select the different level difficulty: easy, medium and hard. As seen in the figure below, the menu consists of a movable arrow and the selectable difficulties. The player can move the arrow to choose which level they want to play by tilting the board, the same way they would move the car once in play. Once the player's decision is made, they click on the blue button of the board to launch the game with the selected difficulty level. 
+[INSERT SC OF THE GAME MENU]
+
+\subsubsection{Implementation of the Game Menu}
+In order to make sure that the transition between the game menu and the actual game is done correctly, the OS task responsible for the game behavior and display is suspended as soon as the program is launched. The game menu task is set to high priority and will then be launched. A mutex is used to lock the resources used to read the accelerometer and process the board's tilt to avoid the other threads using them simultaneously. 
+
+The difficulty of the game is set based on the position of the game menu arrow. If the arrow is at position 0, the difficulty is easy. If the arrow is at position 1, the difficulty is medium and if the arrow is at position 2, the difficulty is hard. It also sets where the arrow should be displayed in the menu. The difficulty level of the game determines how many obstacles will be generated.
+
+When the player is ready to play and presses the start button, the game parameters such as the position of the car and the state of the game board are reset, the game difficulty is set, and the task in charge of the game behavior is resumed. This allows the game to start in its initial state. The game menu task is also suspended. It will only be resumed once the player loses or wins the game.
 
 \subsection{Obstacle Generation}
 Obstacles are placed randomly along the road to create a challenging environment for the player. The generation algorithm ensures that:
