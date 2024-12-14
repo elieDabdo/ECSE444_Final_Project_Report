@@ -135,8 +135,13 @@ The player controls a car navigating through a dynamically generated road. The r
 The game menu was designed to let the player decide the difficulty of the game each time the game is reset.
 
 \subsubsection{Game Menu Functionality}
-The game menu is displayed to the player whenever the game is first launched or after the player has won or lost a game. It lets the player select the different level difficulty: easy, medium and hard. As seen in the figure below, the menu consists of a movable arrow and the selectable difficulties. The player can move the arrow to choose which level they want to play by tilting the board, the same way they would move the car once in play. Once the player's decision is made, they click on the blue button of the board to launch the game with the selected difficulty level. 
-[INSERT SC OF THE GAME MENU]
+The game menu is displayed to the player whenever the game is first launched or after the player has won or lost a game. It lets the player select the different level difficulty: easy, medium and hard. As seen in Figure \ref{fig:game_menu}, the menu consists of a movable arrow and the selectable difficulties. The player can move the arrow to choose which level they want to play by tilting the board, the same way they would move the car once in play. Once the player's decision is made, they click on the blue button of the board to launch the game with the selected difficulty level. 
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{game_menu.png}
+    \caption{Game Menu displayed on the Terminal}
+    \label{fig:game_menu}
+\end{figure}
 
 \subsubsection{Implementation of the Game Menu}
 In order to make sure that the transition between the game menu and the actual game is done correctly, the OS task responsible for the game behavior and display is suspended as soon as the program is launched. The game menu task is set to high priority and will then be launched. A mutex is used to lock the resources used to read the accelerometer and process the board's tilt to avoid the other threads using them simultaneously. 
