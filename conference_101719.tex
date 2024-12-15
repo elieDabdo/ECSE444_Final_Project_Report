@@ -66,35 +66,58 @@ The game leverages UART communication to print the road layout and car position 
 \subsection{Tilt Control Using I2C}
 The tilt control feature is central to the game, allowing the player to navigate the car within the game environment and interact with the menu. This functionality is achieved by interfacing an accelerometer with the microcontroller via the I2C protocol. The accelerometer measures the tilt angles of the device, which are used to determine the car's movement and menu selections.
 
-\subsubsection{Mathematics Behind Tilt Control}
-The accelerometer provides raw data in three axes: $x$, $y$, and $z$. These values are processed to calculate the tilt angle $\theta$, which determines the car's movement. The tilt angle can be calculated using the following formula:
-\begin{equation}
-\theta = \arctan\left(\frac{y}{z}\right),
-\end{equation}
-where $y$ and $z$ are the accelerometer readings along their respective axes.
+\subsubsection{Mathematics of Tilt-Based Control}
+The tilt-based control mechanism utilizes accelerometer data to calculate the car's roll angle and determine its movement along the road. The accelerometer provides three-dimensional data: $a_x$, $a_y$, and $a_z$, representing the acceleration along the $x$, $y$, and $z$ axes, respectively. 
 
-To map the tilt angle to car movement, we define thresholds for left and right turns. For example:
-\begin{align}
-\text{Left Turn:} & \quad \theta > \theta_{\text{threshold}}^{+}, \\
-\text{Right Turn:} & \quad \theta < \theta_{\text{threshold}}^{-}.
-\end{align}
+To calculate the roll angle $\phi$ (in degrees), the following steps are performed:
+\begin{enumerate}
+    \item Compute the magnitude of the horizontal components of acceleration $a_x$ and $a_z$:
+    \begin{equation}
+    M = \sqrt{a_x^2 + a_z^2}
+    \end{equation}
+    This magnitude represents the combined horizontal acceleration components and is necessary for determining the roll angle.
 
-The car moves straight when $\theta$ is within a neutral range:
-\begin{equation}
-\theta_{\text{threshold}}^{-} \leq \theta \leq \theta_{\text{threshold}}^{+}.
-\end{equation}
+    \item Using the calculated magnitude $M$, determine the roll angle $\phi$ using the $\text{atan2}$ function. The $\text{atan2}$ function takes the vertical acceleration $a_y$ and the horizontal magnitude $M$ as arguments:
+    \begin{equation}
+    \phi = \text{atan2}(a_y, M) \cdot \frac{180}{\pi}
+    \end{equation}
+    Here, the factor $\frac{180}{\pi} \approx 57.2958$ is used to convert the roll angle from radians to degrees.
 
-These thresholds are calibrated based on gameplay requirements, ensuring responsiveness and accuracy.
+    \item The roll angle $\phi$ is then compared to thresholds to determine the car's movement along the road:
+\begin{itemize}
+    \item If $\phi > 20.0^\circ$ and \texttt{car\_position} $< 6$, update \texttt{car\_position} as: 
+    \[
+    \texttt{car\_position} \leftarrow \texttt{car\_position} + 1
+    \]
+    \item If $\phi < -20.0^\circ$ and \texttt{car\_position} $> 0$, update \texttt{car\_position} as: 
+    \[
+    \texttt{car\_position} \leftarrow \texttt{car\_position} - 1
+    \]
+\end{itemize}
 
-\subsubsection{Menu Navigation Using Tilt Control}
-Tilt control is also used for menu navigation. The accelerometer readings are processed similarly, with predefined tilt ranges mapped to menu options. For example:
-\begin{align}
-\text{Option 1:} & \quad \theta < \theta_{\text{menu}}^{-}, \\
-\text{Option 2:} & \quad \theta_{\text{menu}}^{-} \leq \theta \leq \theta_{\text{menu}}^{+}, \\
-\text{Option 3:} & \quad \theta > \theta_{\text{menu}}^{+}.
-\end{align}
+    These conditions ensure that the car moves left or right based on the tilt of the device while staying within the allowed boundaries of the road.
+\end{enumerate}
 
-This intuitive control mechanism enhances user experience and eliminates the need for additional buttons or input devices.
+To ensure thread safety when updating the car's position, the accelerometer data is protected using a mutex. The following steps outline this process:
+\begin{enumerate}
+    \item The mutex is acquired to prevent concurrent access:
+    \begin{equation}
+    \text{osMutexWait(accelDataMutex, osWaitForever)}
+    \end{equation}
+
+    \item The car's position is updated based on the computed roll angle $\phi$ and the defined thresholds.
+
+    \item The mutex is released after the update:
+    \begin{equation}
+    \text{osMutexRelease(accelDataMutex)}
+    \end{equation}
+\end{enumerate}
+
+This approach ensures real-time responsiveness and prevents data corruption caused by simultaneous thread access. By combining precise mathematical computations and robust synchronization mechanisms, the system achieves smooth and accurate tilt-based control for the car.
+
+
+\subsubsection{Menu Navigation Using Tilt Control and Button}
+Tilt control is also used for menu navigation. The accelerometer readings are processed similarly, with predefined tilt ranges mapped to moving up or down in the menu options. To select and option, the user presses the button and this effectively starts the game.
 
 \subsection{Auditory Feedback Using DAC and Speaker}
 Auditory feedback is provided through a speaker connected to the microcontroller's DAC. This feature generates sound effects when the car interacts with the game environment, such as collisions, crossing boundaries, or successfully completing a level. The DAC converts digital signals into analog waveforms, driving the speaker to produce sound. This enhances the game’s interactivity by engaging multiple senses.
@@ -118,13 +141,50 @@ The game features multiple sound effects to enhance player immersion:
 \end{itemize}
 The sounds are generated using sine wave approximations at specific frequencies and durations. These parameters were fine-tuned to ensure clarity and distinguishability.
 
-\subsection{Operating System for Thread Management}
-An operating system is implemented to manage threads for various tasks, including input handling, game logic, display updates, and sound generation. The OS ensures efficient multitasking and real-time responsiveness, critical for an interactive game. Key functionalities include:
-\begin{itemize}
-    \item \textbf{Task Scheduling:} Allocating CPU time to different tasks based on priority.
-    \item \textbf{Synchronization:} Preventing resource conflicts among threads.
-    \item \textbf{Resource Management:} Efficiently handling shared resources like memory and peripherals.
-\end{itemize}
+\subsection{Operating System for Thread Management}  
+An operating system is implemented to manage multiple threads critical to the game's functionality, including input handling, game logic, display updates, and sensor data acquisition. The OS not only ensures real-time responsiveness but also leverages thread priorities and mutexes for efficient multitasking and synchronization.  
+
+\subsubsection*{Thread Priorities and Memory Allocation}  
+Each thread is assigned a priority level and allocated a specific amount of memory, ensuring efficient execution and minimizing resource contention:  
+\begin{itemize}  
+    \item \textbf{Button Task:}  
+        \begin{itemize}  
+            \item \textbf{Priority:} High (\texttt{osPriorityHigh}) to ensure immediate response to player inputs.  
+            \item \textbf{Memory Allocation:} 128 bytes, sufficient for managing button states and transitions.  
+        \end{itemize}  
+
+    \item \textbf{Terminal Task:}  
+        \begin{itemize}  
+            \item \textbf{Priority:} Above Normal (\texttt{osPriorityAboveNormal}) to ensure timely updates to the game display and logic.  
+            \item \textbf{Memory Allocation:} 200 bytes to handle the dynamic updates of the terminal display and obstacle generation.  
+        \end{itemize}  
+
+    \item \textbf{Sensor Task:}  
+        \begin{itemize}  
+            \item \textbf{Priority:} Above Normal (\texttt{osPriorityAboveNormal}) to guarantee regular sampling of accelerometer data.  
+            \item \textbf{Memory Allocation:} 200 bytes, accommodating accelerometer data processing and tilt angle calculation.  
+        \end{itemize}  
+\end{itemize}  
+
+\subsubsection*{Role of Mutexes in Synchronization}  
+Mutexes play a vital role in synchronizing access to shared resources across threads, preventing race conditions and ensuring data consistency:  
+\begin{itemize}  
+    \item \textbf{Accelerometer Data:}  
+        The \texttt{accelDataMutex} protects access to the shared variable \texttt{roll}, which is calculated based on accelerometer data. Threads like the Terminal Task and Sensor Task rely on this mutex to avoid simultaneous reads and writes, ensuring accurate data for game logic.  
+
+    \item \textbf{Game State Updates:}  
+        Shared variables such as \texttt{car\_position} are updated within critical sections guarded by mutexes. This prevents conflicts between tasks such as obstacle generation and player movement handling.  
+\end{itemize}  
+
+\subsubsection*{Task Functionalities}  
+\begin{itemize}  
+    \item \textbf{Button Task:} Handles player input via a button interface to navigate game modes or sensor configurations. It cycles through sensor modes and updates the game state accordingly.  
+    \item \textbf{Terminal Task:} Updates the terminal display, generates obstacles at specified intervals, checks for game over or victory conditions, and manages player movement based on tilt input.  
+    \item \textbf{Sensor Task:} Regularly polls accelerometer data, calculates the tilt angle (\(\phi\)), and updates the shared \texttt{roll} variable for use in player movement.  
+\end{itemize}  
+
+By integrating task prioritization, memory allocation, and mutex-based synchronization, the system ensures a responsive and stable gameplay experience.  
+
 
 \section{Game Features}
 The interactive car game is designed to provide an engaging and immersive experience by simulating a car navigating a road with obstacles. The game incorporates a variety of features to ensure challenging gameplay and responsive mechanics. This section outlines the core aspects of the game, including obstacle generation, collision detection, boundary enforcement, and finish-line checking.
@@ -150,21 +210,54 @@ The difficulty of the game is set based on the position of the game menu arrow. 
 
 When the player is ready to play and presses the start button, the game parameters such as the position of the car and the state of the game board are reset, the game difficulty is set, and the task in charge of the game behavior is resumed. This allows the game to start in its initial state. The game menu task is also suspended. It will only be resumed once the player loses or wins the game.
 
-\subsection{Obstacle Generation}
-Obstacles are placed randomly along the road to create a challenging environment for the player. The generation algorithm ensures that:
-\begin{itemize}
-    \item Obstacles are positioned within the road boundaries.
-    \item The spacing between obstacles varies, maintaining unpredictability.
-    \item No two obstacles overlap, ensuring clear paths for the player to navigate.
-\end{itemize}
-A pseudo-random number generator is used to determine the obstacle positions, with parameters tuned to balance difficulty and fairness.
+\subsection{Obstacle Generation}  
+Obstacle generation plays a key role in making the game engaging and challenging. Obstacles are placed on the road based on the difficulty level and the player’s progress. The generation algorithm ensures:  
+\begin{itemize}  
+    \item \textbf{Obstacle Placement:} Obstacles are always positioned within the road boundaries to ensure they are reachable by the car.  
+    \item \textbf{Randomized Positions:} The row indices for obstacles are determined using a pseudo-random number generator, which provides unpredictable placement. For example, the function \texttt{getRandomNumber0to6()} generates random numbers between 0 and 6, corresponding to possible rows.  
+    \item \textbf{Spacing and No Overlap:} Obstacles are spaced apart to ensure they do not overlap, leaving clear paths for the car to navigate.  
+    \item \textbf{Dynamic Movement:} Obstacles move leftward on the game board during each game loop iteration, creating the illusion of forward motion.  
+\end{itemize}  
 
-\subsection{Collision Detection}
-Collision detection is a critical feature to determine whether the car hits an obstacle. This is achieved by comparing the car's position to the positions of all obstacles within the same row on the terminal display. Mathematically, if the car's coordinates $(x_c, y_c)$ match an obstacle's coordinates $(x_o, y_o)$, a collision is detected:
-\begin{equation}
-\text{Collision: } (x_c = x_o) \land (y_c = y_o)
-\end{equation}
-When a collision is detected, an alert is triggered, and auditory feedback is provided through the speaker using the DAC.
+For easy difficulty, a single obstacle is generated at a time. For medium difficulty, two obstacles are created, while for hard difficulty, three obstacles are generated simultaneously. The algorithm ensures that each obstacle is placed in a unique row, and all obstacles are initialized at the far-right column of the board.
+
+\subsection{Collision Detection}  
+Collision detection is essential to determine if the car hits an obstacle. This is achieved by comparing the car's position with the positions of all obstacles within the same row.  
+
+\begin{itemize}  
+    \item \textbf{Car Position:} The car spans four columns, starting from its leading edge. Its position is updated dynamically based on player input.  
+    \item \textbf{Obstacle Position:} Obstacles are tracked as they move leftward, and their positions are updated during each loop iteration.  
+    \item \textbf{Collision Condition:} A collision occurs if the car and an obstacle share the same row and any part of the car overlaps with the obstacle.  
+    \item \textbf{Collision Handling:}  
+        \begin{itemize}  
+            \item If a collision is detected, a "Game Over" message is displayed, and the game terminates.  
+            \item Auditory feedback is generated using the DAC to alert the player.  
+        \end{itemize}  
+\end{itemize}  
+
+\subsubsection*{Mathematical Representation of Collision Detection}  
+Let the car's position on the board be \((x_c, y_c)\), where \(x_c\) represents the row, and \(y_c\) the column of the car's leading edge. Obstacles are represented similarly, with positions \((x_o, y_o)\). A collision is mathematically defined as:  
+\begin{equation}  
+\text{Collision: } (x_c = x_o) \land (y_c = y_o)  
+\end{equation}  
+
+To account for the width of the car, which spans four columns, the collision condition is extended to:  
+\begin{equation}  
+(x_c = x_o) \land \big(y_o \in \{y_c, y_c + 1, y_c + 2, y_c + 3\}\big)  
+\end{equation} 
+
+\subsection{Dynamic Board Updates}  
+The game board is updated in each iteration of the game loop to reflect the current state:  
+
+\begin{itemize}  
+    \item \textbf{Obstacle Updates:} Obstacles are cleared from their previous positions and shifted leftward. If an obstacle reaches the left edge, it is removed.  
+    \item \textbf{Car Placement:} The car's position is updated based on player input and displayed using the string "o/=\o".  
+    \item \textbf{Collision Detection During Updates:} If an obstacle moves into a position occupied by the car, a collision is detected, triggering game-over logic.  
+    \item \textbf{Board Visualization:} The updated board is displayed after each iteration, showing obstacles, the car, and road boundaries.  
+\end{itemize}  
+
+These mechanisms work together to provide a balanced gameplay experience, combining randomness for unpredictability and fairness for skill-based navigation.  
+
 
 \subsection{Boundary Enforcement}
 To ensure that the car remains within the road boundaries, the system constantly checks its position against the road limits. The road boundaries are defined as the minimum and maximum permissible $x$-coordinates:
@@ -179,9 +272,6 @@ The finish line is positioned at the end of the road and serves as the game's en
 y_c = y_{\text{finish}}
 \end{equation}
 a victory message is displayed on the terminal, and a celebratory sound is generated through the speaker. This marks the successful completion of the game.
-
-\subsection{Integration of Features}
-These features are seamlessly integrated to deliver a cohesive gameplay experience. The system ensures real-time updates to the terminal display and accurate feedback to the player, making the game intuitive and engaging. Each feature contributes to the overall challenge and enjoyment, highlighting the capabilities of the embedded system.
 
 \section{Conclusion}
 This project demonstrates a range of microcontroller capabilities through an interactive car game. The ambitious features, particularly tilt control, showcase advanced interfacing, mathematical processing, and intuitive user interaction. The combination of UART communication, auditory feedback, and multitasking through an operating system further highlights the project’s complexity and innovation. The code is structured and well-documented to ensure readability and maintainability.
