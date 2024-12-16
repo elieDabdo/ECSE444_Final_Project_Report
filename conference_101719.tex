@@ -128,7 +128,6 @@ The speaker is connected to the DAC output pin on the microcontroller. The DAC i
     \item \textbf{Hardware Connection:} The DAC output is connected to a low-power speaker via a coupling capacitor to filter out DC offsets.
     \item \textbf{Signal Modulation:} The DAC generates waveforms of different frequencies and durations to create distinct sound effects.
     \item \textbf{Volume Control:} By adjusting the amplitude of the generated waveform, the volume can be controlled programmatically.
-    \item \textbf{Improved Loudness:} The speaker's volume was optimized by ensuring maximum safe DAC output levels and experimenting with different coupling capacitor values to enhance audio output.
 \end{itemize}
 
 \subsubsection{Sound Effects Implementation}
@@ -198,7 +197,7 @@ The game menu was designed to let the player decide the difficulty of the game e
 The game menu is displayed to the player whenever the game is first launched or after the player has won or lost a game. It lets the player select the different level difficulty: easy, medium and hard. As seen in Figure \ref{fig:game_menu}, the menu consists of a movable arrow and the selectable difficulties. The player can move the arrow to choose which level they want to play by tilting the board, the same way they would move the car once in play. Once the player's decision is made, they click on the blue button of the board to launch the game with the selected difficulty level. 
 \begin{figure}
     \centering
-    \includegraphics[width=1\linewidth]{game_menu.png}
+    \includegraphics[width=1\linewidth]{Game Menu.pdf}
     \caption{Game Menu displayed on the Terminal}
     \label{fig:game_menu}
 \end{figure}
@@ -272,6 +271,13 @@ The finish line is positioned at the end of the road and serves as the game's en
 y_c = y_{\text{finish}}
 \end{equation}
 a victory message is displayed on the terminal, and a celebratory sound is generated through the speaker. This marks the successful completion of the game.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Gameplay.pdf}
+    \caption{Gameplay displayed on the Terminal}
+    \label{fig:game_menu}
+\end{figure}
+
 
 \section{Conclusion}
 This project demonstrates a range of microcontroller capabilities through an interactive car game. The ambitious features, particularly tilt control, showcase advanced interfacing, mathematical processing, and intuitive user interaction. The combination of UART communication, auditory feedback, and multitasking through an operating system further highlights the project’s complexity and innovation. The code is structured and well-documented to ensure readability and maintainability.
